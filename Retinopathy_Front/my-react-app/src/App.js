@@ -14,7 +14,6 @@ function App() {
     formData.append("image", file);
     axios.post('http://localhost:8000/process_image/', formData, { responseType: 'blob' })
       .then(response => {
-        // Create a local URL for the blob
         const localUrl = URL.createObjectURL(response.data);
         setImageUrl(localUrl);
       })
@@ -27,7 +26,7 @@ function App() {
       <button onClick={onFileUpload}>
         Upload!
       </button>
-      {imageUrl && <img src={imageUrl} alt="Uploaded Image" />}
+      {imageUrl && <img src={imageUrl} alt="Processed Image" />}
     </div>
   );
 }

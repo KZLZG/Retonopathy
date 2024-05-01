@@ -4,5 +4,6 @@ Retinopathy_Back/myproject/db.sqlite3
 Retinopathy_Back/myproject/api/__pycache__/
 Retinopathy_Back/venv/
 Retinopathy_Back/myproject/media/
+Retinopathy_Back/myproject/unet.onnx
 Retinopathy_Back/myproject/myproject/settings.py
 Retinopathy_Front/my-react-app/node_modules/
