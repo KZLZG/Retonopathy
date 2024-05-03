@@ -4,50 +4,35 @@ import numpy as np
 from PIL import Image as PILImage, ImageDraw
 import io
 import onnxruntime as ort
-import matplotlib.cm as cm  # for colormap
+from PIL import ImageChops, Image
+import matplotlib.pyplot as plt
 
 
 # Initialize ONNX runtime session
 session = ort.InferenceSession('unet.onnx')
 input_name = session.get_inputs()[0].name
 
-def generate_color_map(n_colors):
-    """
-    Generate a list of distinct RGB colors.
 
-    Args:
-    n_colors (int): Number of distinct colors to generate.
+def overlay_masks(image, masks, threshold=160):
 
-    Returns:
-    List of tuples: Each tuple contains three integers (R, G, B).
-    """
-    import matplotlib.pyplot as plt
-    cmap = plt.get_cmap('tab20')  # Using a matplotlib colormap that supports up to 20 unique colors
-    colors = [cmap(i) for i in range(n_colors)]  # Generate colors
-    # Convert colors from 0-1 range to 0-255 range and return as list of tuples
-    return [(int(r*255), int(g*255), int(b*255)) for r, g, b, _ in colors]
+    mask_normalized = (masks - masks.min()) / (masks.max() - masks.min())
+    color_mask = plt.get_cmap('jet')(mask_normalized) 
+    color_mask = (color_mask * 255).astype(np.uint8)
 
-def overlay_masks(image, masks, color=(255, 0, 0)):
-
-    colors = generate_color_map(len(masks))
-    output_image =  np.array(image.copy())
-    image =  np.array(image)
-    # Ensure color has three elements (R, G, B)
-    if len(color) != 3:
-        raise ValueError("Color must be a tuple of three integers (R, G, B).")
+    composite_mask = np.copy(np.array(image))
+    for i in range(14):
+    # Создание маски, где предсказания превышают порог
+        mask_above_threshold = color_mask[i] > threshold
     
-    # Loop through each mask
-    for mask, color in zip(masks, colors):
-        # Verify that the mask dimensions match the image dimensions
-        if mask.shape != image.shape[:2]:
-            raise ValueError("Mask shape does not match image dimensions.")
-
-        # Apply the color to places where the mask is 1
-        for i in range(3):  # Loop over color channels
-            output_image[:, :, i] = np.where(mask>mask.max()/1.5, color[i], output_image[:, :, i])
-    return PILImage.fromarray(output_image).convert('RGB')
-
-
+    # Применение маски: выбор новых значений там, где маска выше порога
+        for j in range(3):  # для каждого из каналов RGB
+            channel = composite_mask[:, :, j]
+            new_values = np.maximum(channel, color_mask[i][:, :, j])
+            channel[mask_above_threshold[:, :, j]] = new_values[mask_above_threshold[:, :, j]]
+            composite_mask[:, :, j] = channel
+    composite_image = Image.fromarray(composite_mask, 'RGB')
+    combined = ImageChops.multiply(image, composite_image)
+    return combined
 
 
 @csrf_exempt
